@@ -1,0 +1,7 @@
+{
+  "name": "kolibri_usb_backup_plugin",
+  "description": "Kolibri",
+  "private": true,
+  "dependencies": {
+  }
+}

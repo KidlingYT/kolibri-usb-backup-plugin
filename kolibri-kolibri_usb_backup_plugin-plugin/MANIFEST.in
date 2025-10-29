@@ -1,0 +1,7 @@
+include LICENSE
+recursive-exclude kolibri_kolibri_usb_backup_plugin_plugin/* *pyc
+recursive-include kolibri_kolibri_usb_backup_plugin_plugin/static *.*
+
+recursive-include kolibri_kolibri_usb_backup_plugin_plugin/build *.json
+recursive-exclude kolibri_kolibri_usb_backup_plugin_plugin/assets *
+
