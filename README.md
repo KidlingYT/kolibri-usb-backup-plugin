@@ -25,3 +25,12 @@ cd ~/kolibri
 ```sh
 kolibri plugin enable kolibri_kolibri_usb_backup_plugin_plugin
 ```
+
+5. Sometimes, you have to run this cmd, then start the server:
+
+```sh
+cd  ~/kolibri
+yarn run kolibri-build dev --file ~/plugin_build.txt
+```
+
+6. The plugin page is accessible at http://localhost:8000/en/kolibri_kolibri_usb_backup_plugin_plugin/
