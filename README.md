@@ -31,6 +31,8 @@ kolibri plugin enable kolibri_kolibri_usb_backup_plugin_plugin
 ```sh
 cd  ~/kolibri
 yarn run kolibri-build dev --file ~/plugin_build.txt
+# ctrl+c
+yarn run devserver
 ```
 
 6. The plugin page is accessible at http://localhost:8000/en/kolibri_kolibri_usb_backup_plugin_plugin/
