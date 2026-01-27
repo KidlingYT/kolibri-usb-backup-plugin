@@ -2,11 +2,13 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from kolibri.core.webpack.hooks import WebpackBundleHook
 from kolibri.plugins import KolibriPluginBase
+from kolibri.plugins.hooks import register_hook
 
 
 class KolibriUsbBackupPluginPlugin(KolibriPluginBase):
-    pass
+    translated_view_urls = "urls"
 
 
+@register_hook
 class KolibriUsbBackupPluginPluginAsset(WebpackBundleHook):
-    bundle_id = "kolibri_kolibri_usb_backup_plugin_plugin_module"
+    bundle_id = "app"
