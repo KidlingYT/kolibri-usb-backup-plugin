@@ -1,0 +1,5 @@
+{% extends "kolibri/base.html" %}
+{% load webpack_tags %}
+{% block content %}
+  {% webpack_asset 'kolibri_kolibri_usb_backup_plugin_plugin.app' %}
+{% endblock %}
