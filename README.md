@@ -26,7 +26,13 @@ cd ~/kolibri
 kolibri plugin enable kolibri_kolibri_usb_backup_plugin_plugin
 ```
 
-5. Sometimes, you have to run this cmd, then start the server:
+5. Make this plugin_build.txt with the following txt:
+
+```sh
+kolibri_kolibri_usb_backup_plugin_plugin
+```
+
+7. Sometimes, you have to run this cmd, then start the server:
 
 ```sh
 cd  ~/kolibri
