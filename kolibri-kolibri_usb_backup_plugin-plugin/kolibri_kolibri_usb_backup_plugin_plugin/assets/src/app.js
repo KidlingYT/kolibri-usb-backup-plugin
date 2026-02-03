@@ -1,6 +1,7 @@
 import KolibriApp from 'kolibri-app';
-import RootVue from './views/KolibriUsbBackupPluginPluginIndex';
+import RootVue from './views/KolibriUsbBackupPluginPluginIndex.vue';
 import routes from './routes';
+import pluginModule from './modules/pluginModule';
 
 class UsbBackupModule extends KolibriApp {
   get routes() {
@@ -9,6 +10,9 @@ class UsbBackupModule extends KolibriApp {
   get RootVue() {
     return RootVue;
   }
+  get pluginModule() {
+    return pluginModule;
+  }
 }
 
-export default new UsbBackupModule();
+export default  new UsbBackupModule();;
