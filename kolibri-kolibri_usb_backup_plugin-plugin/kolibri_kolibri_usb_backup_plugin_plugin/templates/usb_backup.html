@@ -1,13 +1,5 @@
 {% extends "kolibri/base.html" %}
 {% load webpack_tags %}
 {% block content %}
-  <!-- <div id="app">
-    <h1>Kolibri USB Backup Plugin</h1>
-    <p>Welcome to the USB Backup Plugin for Kolibri. This plugin allows you to manage USB backups for your Kolibri installation.</p>
-    <div id="backup-controls">
-      <button id="schedule-backup">Schedule Backup</button>
-      <button id="view-backups">View Backups</button>
-    </div>
-  </div> -->
   {% webpack_asset 'kolibri_kolibri_usb_backup_plugin_plugin.app' %}
 {% endblock %}
