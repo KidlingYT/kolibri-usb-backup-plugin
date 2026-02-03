@@ -1,4 +1,4 @@
-import BackupPage from './views/KolibriUsbBackupPluginPluginIndex';
+import BackupPage from './views/KolibriUsbBackupPluginPluginIndex.vue';
 
 export default [
   {
