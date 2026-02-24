@@ -3,21 +3,12 @@
     <h1>Backup Volatile Data</h1>
 
     <table style="width: 100%;">
-        <th style="padding: 12px 8px; font-size: 12px; text-align: left; vertical-align: bottom; line-height: 1.5em; color: rgb(102, 102, 102);">Facility</th>
         <tbody>
           <tr>
+            <td>WARNING: This plugin only works on Raspberry Pi devices while an auxiliary MicroSD card is inserted via USB.</td>
+          </tr>
+          <tr>
             <td>
-              <div>
-                <h2 class="name">
-                  <KLabeledIcon icon="facility" label="Facility Name"></KLabeledIcon>
-                  <KTooltip
-                    reference="icon"
-                    :refs="$refs"
-                  >
-                    Registered to `Kolibri Data Portal`
-                  </KTooltip>
-                </h2>
-              </div>
               <div style="padding: 6px 0;">
                 <span>
                   <!-- <template v-if="facility.backingUp || isBackingUp">
@@ -37,7 +28,7 @@
                     <span
                       class="backup-message"
                     >
-                      Placeholder status: Never backed up
+                      Backup PLACEHOLDER status: Never backed up
                     </span>
                     <!-- Always show the last successful backup time when available -->
                     <!-- <span
@@ -51,16 +42,10 @@
                       Last backuped: 
                     </span> -->
                   <!-- </template> -->
-                  <KButton
-                    :text="'Create backup schedule'"
-                    :disabled="isBackingUp"
-                    appearance="basic-link"
-                    style="font-size: 14px; padding-top: 8px;"
-                    @click="openModal()"
-                  />
                 </span>
               </div>
             </td>
+            <td></td> <!-- Spacer -->
             <td
               class="button-col"
             >
@@ -72,6 +57,38 @@
                 />
               </KButtonGroup>
             </td>
+          </tr>
+          <tr>
+            <td>
+              <h2>Currently Scheduled Backups:</h2>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <KButton
+                :text="'Schedule New Backup'"
+                :disabled="isBackingUp"
+                appearance="basic-link"
+                style="font-size: 14px; padding-top: 8px;"
+                @click="openModal()"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <h3>Frequency</h3>
+            </td>
+            <td>
+              <h3>Last Backup</h3>
+            </td>
+            <td>
+              <h3>Next Backup</h3>
+            </td>
+          </tr>
+          <tr>
+            <td>Every Friday at 2:00 p.m.</td>
+            <td>02/15/2026 10:45</td>
+            <td>02/20/2026 10:45</td>
           </tr>
         </tbody>
       <!-- </template> -->
@@ -169,6 +186,12 @@
 </template>
 
 <script>
+  // import { usb, getDeviceList } from 'usb';
+  // const devices = getDeviceList();
+
+  // console.log(devices);
+  // devices.forEach(device => console.log(device));
+
   const oneHour = 60 * 60;
   const oneDay = oneHour * 24;
   const oneWeek = oneDay * 7;
