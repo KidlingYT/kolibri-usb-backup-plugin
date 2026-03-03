@@ -1,8 +1,5 @@
 {
   "name": "kolibri_usb_backup_plugin",
   "description": "Kolibri",
-  "private": true,
-  "dependencies": {
-    "usb": "^2.17.0"
-  }
+  "private": true
 }

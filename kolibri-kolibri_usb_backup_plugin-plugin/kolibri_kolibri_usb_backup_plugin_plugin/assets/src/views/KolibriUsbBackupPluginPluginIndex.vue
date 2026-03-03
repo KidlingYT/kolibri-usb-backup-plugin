@@ -1,14 +1,20 @@
 <template>
-  <KPageContainer style="margin: 72px 32px;">
-    <h1>Backup Volatile Data</h1>
+  <AppBarPage
+    :title="'Backup Volatile Data'"
+    :showNavigation="true"
+    :loading="false"
+  >
+    <template #default="{ pageContentHeight }">
+      <KPageContainer>
+      <h1>Backup Volatile Data</h1>
 
-    <table style="width: 100%;">
+      <table style="width: 100%;">
         <tbody>
           <tr>
-            <td>WARNING: This plugin only works on Raspberry Pi devices while an auxiliary MicroSD card is inserted via USB.</td>
+            <td colspan="3">WARNING: This plugin only works on Raspberry Pi devices while an auxiliary MicroSD card is inserted via USB.</td>
           </tr>
           <tr>
-            <td>
+            <td colspan="3">
               <div style="padding: 6px 0;">
                 <span>
                   <!-- <template v-if="facility.backingUp || isBackingUp">
@@ -45,7 +51,6 @@
                 </span>
               </div>
             </td>
-            <td></td> <!-- Spacer -->
             <td
               class="button-col"
             >
@@ -53,7 +58,7 @@
                 <KButton
                   appearance="raised-button"
                   :text="'Backup Now'"
-                  @click=""
+                  @click="immediateBackup()"
                 />
               </KButtonGroup>
             </td>
@@ -89,108 +94,124 @@
             <td>Every Friday at 2:00 p.m.</td>
             <td>02/15/2026 10:45</td>
             <td>02/20/2026 10:45</td>
+            <td style="display: flex; flex-direction: row;">
+              <KButton icon="edit" text="Edit" @click="editScheduled()"></KButton>
+            </td>
           </tr>
         </tbody>
-      <!-- </template> -->
-    </table>
+      </table>
 
 
-    <!-- Scheduling Modal -->
-    <KModal
-      v-if="showModal"
-      :title="'Edit backup schedule'"
-      :submitText="'Save'"
-      :cancelText="'cancel'"
-      @submit="handleSubmit"
-      @cancel="closeModal"
-    >
-      <KGrid
-        gutter="48"
-        class="edit-backup-schedule"
+      <!-- Scheduling Modal -->
+      <KModal
+        v-if="showModal"
+        :title="'Edit backup schedule'"
+        :submitText="'Save'"
+        :cancelText="'cancel'"
+        @submit="handleSubmit"
+        @cancel="closeModal"
       >
-        <KGrid class="align-kselects">
-          <KGrid>
-            <KGridItem>
-              <KSelect
-                v-model="selectedItem"
-                class="selector"
-                :options="selectArray"
-                :label="'Frequency'"
-                @select="handleUserInput"
-              />
-            </KGridItem>
+        <KGrid
+          gutter="48"
+          class="edit-backup-schedule"
+        >
+          <KGrid class="align-kselects">
+            <KGrid>
+              <KGridItem>
+                <KSelect
+                  v-model="selectedItem"
+                  class="selector"
+                  :options="selectArray"
+                  :label="'Frequency'"
+                  @select="handleUserInput"
+                />
+              </KGridItem>
+            </KGrid>
+            <KGrid v-if="dayRequired">
+              <KGridItem>
+                <KSelect
+                  v-model="selectedDay"
+                  class="selector"
+                  :options="getDays"
+                  :label="'Day'"
+                  @select="handleUserInput"
+                />
+              </KGridItem>
+            </KGrid>
+            <KGrid v-if="timeRequired">
+              <KGridItem>
+                <KSelect
+                  v-model="selectedTime"
+                  class="selector"
+                  :options="BackupTime"
+                  :label="'Time'"
+                  @select="handleUserInput"
+                />
+              </KGridItem>
+            </KGrid>
           </KGrid>
-          <KGrid v-if="dayRequired">
-            <KGridItem>
-              <KSelect
-                v-model="selectedDay"
-                class="selector"
-                :options="getDays"
-                :label="'Day'"
-                @select="handleUserInput"
-              />
-            </KGridItem>
-          </KGrid>
-          <KGrid v-if="timeRequired">
-            <KGridItem>
-              <KSelect
-                v-model="selectedTime"
-                class="selector"
-                :options="BackupTime"
-                :label="'Time'"
-                @select="handleUserInput"
-              />
-            </KGridItem>
-          </KGrid>
+          <KGridItem>
+            <p class="spacing">
+              Server time: ${new Date().toLocaleString()}
+            </p>
+
+            <!-- <p>
+              <KButton
+                v-if="currentTask"
+                appearance="basic-link"
+                class="spacing"
+                @click="removeDeviceModal = true"
+              >
+                {{ $tr('removeDeviceLabel') }}
+              </KButton>
+            </p> -->
+          </KGridItem>
         </KGrid>
-        <KGridItem>
-          <p class="spacing">
-            Server time:
-          </p>
-
-          <p class="spacing">
-            <KCheckbox
-              :checked="retryFlag"
-              @change="handleRetryCheckboxChange"
-            >
-              If scheduled backup fails, keep trying
-            </KCheckbox>
-          </p>
-          <!-- <p>
-            <KButton
-              v-if="currentTask"
-              appearance="basic-link"
-              class="spacing"
-              @click="removeDeviceModal = true"
-            >
-              {{ $tr('removeDeviceLabel') }}
-            </KButton>
-          </p> -->
-        </KGridItem>
-      </KGrid>
-    </KModal>
-  </KPageContainer>
-
-
-
-
-  <!-- <div>
-    <div class="backup-section">
-      <h2>Create Backup</h2>
-      <p>Export all facility data including users, classes, and learning progress.</p>
-      <button class="k-button" @click="startBackup" :disabled="isBackingUp">
-        {{ isBackingUp ? 'Backing up...' : 'Start Backup' }}
-      </button>
-    </div>
-  </div> -->
+      </KModal>
+    </KPageContainer>
+    </template>
+  </AppBarPage>
 </template>
 
 <script>
+  // import BackupResource from 'kolibri-common/apiResources/BackupResource';
   // import { usb, getDeviceList } from 'usb';
   // const devices = getDeviceList();
+  import AppBarPage from 'kolibri/components/pages/AppBarPage';
+  import { useNav } from 'kolibri/composables/useNav';
+  import client from 'kolibri/client';
+  import urls from 'kolibri/urls';
+
+  // Database test
+  // To save data
+//   new_entry = MyPluginData(name="Example Item", description="Plugin info")
+//   new_entry.save()
+
+//  // To retrieve data
+//   all_items = MyPluginData.objects.all()
+//   console.log(all_items);
 
   // console.log(devices);
   // devices.forEach(device => console.log(device));
+
+/**
+ * Trigger an immediate one-off backup for a facility.
+ * @param {string} facilityId
+ * @returns {Promise<{job_id: string}>}
+ */
+function runBackup() {
+  console.log(urls);
+  // const url = '/run_backup';
+  // return fetch({ url, method: 'post', data: {} }).then(
+  //   response => response.data,
+  // );
+  return client({
+    url: urls['kolibri:kolibri_kolibri_usb_backup_plugin_plugin:run_backup'](),
+    method: 'POST'
+  }).then(({ data }) => {
+    return data.status;
+  });
+}
 
   const oneHour = 60 * 60;
   const oneDay = oneHour * 24;
@@ -222,6 +243,7 @@
   }
   export default {
     name: 'KolibriUsbBackupPluginPluginIndex',
+    components: { AppBarPage },
     data() {
       return {
         isBackingUp: false,
@@ -240,6 +262,10 @@
         tasks: null,
         showModal: false,
       };
+    },
+    mounted() {
+      // ensure the core loading spinner is turned off when this page mounts
+      this.$store.dispatch('notLoading');
     },
     computed: {
       pageHeight() {
@@ -374,6 +400,18 @@
         const time = this.selectedTime.hours + ":" + this.selectedTime.minutes;
         console.log("A backup has been scheduled for: " + interval.label + " on " + this.$formatDate(day.date, { weekday: 'long' }) + " at " + time);
         this.showModal = false;
+
+        // Backup backend call here
+
+      },
+      immediateBackup() {
+        
+        // Close any open modal and trigger the server-side run-backup endpoint.
+        this.closeModal();
+
+        runBackup()
+          .then(response => console.log(response));
+
       },
       handleUserInput() {
         this.userHasEdited = true;
@@ -391,6 +429,10 @@
       startRestore() {
         this.statusMessage = 'Restore functionality coming soon...';
         this.statusType = 'info';
+      },
+      editScheduled() {
+        console.log('edit');
+        this.showModal = true;
       },
     },
   };
@@ -439,70 +481,6 @@
   h2 {
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
-  }
-
-  .backup-section {
-    background: #f5f5f5;
-    border-radius: 4px;
-    padding: 1rem;
-    margin: 1rem 0;
-  }
-
-  .k-button {
-    background-color: #996189;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    
-    &:hover {
-      background-color: #7d4f70;
-    }
-    
-    &:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-  }
-
-  .k-button-secondary {
-    background-color: white;
-    color: #996189;
-    border: 1px solid #996189;
-    
-    &:hover {
-      background-color: #f9f5f8;
-    }
-  }
-
-  .backup-info {
-    margin-top: 1rem;
-    padding: 0.5rem;
-    background: #e8f5e9;
-    border-radius: 4px;
-  }
-
-  .status-message {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    border-radius: 4px;
-    
-    &.info {
-      background: #e3f2fd;
-      color: #1565c0;
-    }
-    
-    &.success {
-      background: #e8f5e9;
-      color: #2e7d32;
-    }
-    
-    &.error {
-      background: #ffebee;
-      color: #c62828;
-    }
   }
 
   .edit-backup-schedule {
