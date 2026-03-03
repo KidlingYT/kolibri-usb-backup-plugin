@@ -2,9 +2,59 @@ from django.http import JsonResponse
 from django.views import View
 import subprocess
 from kolibri.core.device.permissions import IsSuperuser
-from rest_framework.response import Response
 from kolibri.core.tasks.registry import TaskRegistry
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import status
+
+from .models import BackupSchedule
 # from .usb import find_usb_microsd
+
+
+
+class BackupScheduleView(APIView):
+    permission_classes = (IsSuperuser,)
+
+    def get(self, request):
+        schedule = BackupSchedule.objects.first()
+        if not schedule:
+            return Response({}, status=status.HTTP_204_NO_CONTENT)
+        return Response({
+            "frequency": schedule.frequency,
+            "hour": schedule.hour.strftime("%H:%M:%S") if schedule.hour else None,
+            "day_of_week": schedule.day_of_week,
+        })
+
+    def post(self, request):
+        from datetime import time
+        data = request.data
+        
+        # Parse hour string "HH:MM" to time object if provided
+        hour_time = None
+        if data.get("hour"):
+            try:
+                h, m = data.get("hour").split(':')
+                hour_time = time(int(h), int(m))
+            except (ValueError, AttributeError, TypeError):
+                hour_time = None
+        
+        # Use defaults to ensure required fields are set on creation
+        schedule, _ = BackupSchedule.objects.get_or_create(
+            pk=1,
+            defaults={
+                "frequency": data.get("frequency", 3600),  # fallback: 1 hour
+                "hour": hour_time,
+                "day_of_week": data.get("day_of_week"),
+            }
+        )
+        # Update the existing record with new values
+        schedule.frequency = data.get("frequency")
+        schedule.hour = hour_time
+        schedule.day_of_week = data.get("day_of_week")
+        schedule.save()
+        return Response({"status": "ok"}, status=status.HTTP_200_OK)
+
+
 
 # class RunBackupView(View):
 #     def post(self, request, *args, **kwargs):

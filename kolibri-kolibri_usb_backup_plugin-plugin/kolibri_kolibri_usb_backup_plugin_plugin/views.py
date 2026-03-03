@@ -17,8 +17,9 @@ class UsbBackupView(TemplateView):
 
 # def backup_schedule_api():
 #     schedule = BackupSchedule.objects.first()  # or your query logic
-#     return JsonResponse({
-#         'frequency': schedule.frequency,
-#         'hour': str(schedule.hour),
-#         'day_of_week': schedule.day_of_week,
-#     })
+#     console.log(schedule)
+    # return JsonResponse({
+    #     'frequency': schedule.frequency,
+    #     'hour': str(schedule.hour),
+    #     'day_of_week': schedule.day_of_week,
+    # })

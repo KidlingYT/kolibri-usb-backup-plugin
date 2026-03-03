@@ -11,7 +11,7 @@
       <table style="width: 100%;">
         <tbody>
           <tr>
-            <td colspan="3">WARNING: This plugin only works on Raspberry Pi devices while an auxiliary MicroSD card is inserted via USB.</td>
+            <td colspan="3">WARNING: This plugin only works on Raspberry Pi devices while an auxiliary MicroSD card is inserted via USB. You may only have one scheduled backup.</td>
           </tr>
           <tr>
             <td colspan="3">
@@ -34,7 +34,7 @@
                     <span
                       class="backup-message"
                     >
-                      Backup PLACEHOLDER status: Never backed up
+                      Backup status: Never backed up
                     </span>
                     <!-- Always show the last successful backup time when available -->
                     <!-- <span
@@ -54,7 +54,7 @@
             <td
               class="button-col"
             >
-              <KButtonGroup style="margin-top: 12px; overflow: visible">
+              <KButtonGroup style="margin-top: 12px; overflow: visible;">
                 <KButton
                   appearance="raised-button"
                   :text="'Backup Now'"
@@ -65,10 +65,10 @@
           </tr>
           <tr>
             <td>
-              <h2>Currently Scheduled Backups:</h2>
+              <h2>Existing Backup:</h2>
             </td>
           </tr>
-          <tr>
+          <tr v-if="!schedule">
             <td>
               <KButton
                 :text="'Schedule New Backup'"
@@ -90,13 +90,16 @@
               <h3>Next Backup</h3>
             </td>
           </tr>
-          <tr>
-            <td>Every Friday at 2:00 p.m.</td>
-            <td>02/15/2026 10:45</td>
-            <td>02/20/2026 10:45</td>
-            <td style="display: flex; flex-direction: row;">
-              <KButton icon="edit" text="Edit" @click="editScheduled()"></KButton>
+          <tr v-if="schedule">
+            <td>{{ scheduleDescription }}</td>
+            <td>{{ schedule.last_backup || '—' }}</td>
+            <td>{{ schedule.next_backup || '—' }}</td>
+            <td class="button-col" style="display: flex; flex-direction: row;">
+              <KButton icon="edit" text="Edit" @click="editScheduled()" />
             </td>
+          </tr>
+          <tr v-else>
+            <td colspan="4" class="backup-message">No schedule set</td>
           </tr>
         </tbody>
       </table>
@@ -152,7 +155,7 @@
           </KGrid>
           <KGridItem>
             <p class="spacing">
-              Server time: ${new Date().toLocaleString()}
+              Server time: {{new Date().toLocaleString()}}
             </p>
 
             <!-- <p>
@@ -260,12 +263,30 @@ function runBackup() {
         deviceId: null,
         facilityId: null,
         tasks: null,
-        showModal: false,
-      };
+        showModal: false,        // schedule object fetched from backend
+        schedule: null,      };
     },
     mounted() {
       // ensure the core loading spinner is turned off when this page mounts
       this.$store.dispatch('notLoading');
+      client({
+        url: urls['kolibri:kolibri_kolibri_usb_backup_plugin_plugin:backup_schedule'](),
+        method: 'GET',
+      }).then(({ data }) => {
+        // cache schedule for table rendering
+        this.schedule = data;
+        if (data.frequency) {
+          // populate the selects exactly the way the watcher on currentTask used to
+          this.selectedItem = this.selectArray.find(i => i.value === data.frequency) || {};
+          if (data.day_of_week !== null) {
+            this.selectedDay = this.getDays.find(d => d.value === data.day_of_week) || {};
+          }
+          if (data.hour) {
+            const [h, m] = data.hour.split(':').map(Number);
+            this.selectedTime = this.BackupTime.find(t => t.hours === h && t.minutes === m) || {};
+          }
+        }
+      });
     },
     computed: {
       pageHeight() {
@@ -273,6 +294,30 @@ function runBackup() {
           height: '80%',
           zIndex: -1,
         };
+      },
+      // human-readable description of the current schedule
+      scheduleDescription() {
+        if (!this.schedule || !this.schedule.frequency) return '';
+        let desc = '';
+        const freq = this.selectArray.find(i => i.value === this.schedule.frequency);
+        if (freq) {
+          desc = freq.label;
+        } else {
+          desc = `${this.schedule.frequency} hrs`;
+        }
+        if (this.schedule.day_of_week !== null && this.schedule.day_of_week !== undefined) {
+          const day = this.getDays.find(d => d.value === this.schedule.day_of_week);
+          if (day) {
+            desc += ` on ${day.label}`;
+          }
+        }
+        if (this.schedule.hour) {
+          const [h, m] = this.schedule.hour.split(':').map(Number);
+          const dt = new Date();
+          dt.setHours(h, m);
+          desc += ` at ${this.$formatTime(dt)}`;
+        }
+        return desc;
       },
       selectArray() {
         return [
@@ -396,13 +441,45 @@ function runBackup() {
       },
       handleSubmit() {
         const interval = this.selectArray.find((item) => item.value === this.selectedItem.value);
-        const day = daysOfWeek[this.selectedDay.value];
-        const time = this.selectedTime.hours + ":" + this.selectedTime.minutes;
-        console.log("A backup has been scheduled for: " + interval.label + " on " + this.$formatDate(day.date, { weekday: 'long' }) + " at " + time);
-        this.showModal = false;
+        let logMsg = "A backup has been scheduled for: " + interval.label;
+        
+        // Build payload with only the fields that are actually needed
+        const payload = {
+          frequency: this.selectedItem.value,
+        };
+        
+        // Only include day_of_week if this frequency requires it
+        if (this.dayRequired && this.dayIsSet) {
+          const day = daysOfWeek[this.selectedDay.value];
+          payload.day_of_week = this.selectedDay.value;
+          logMsg += " on " + this.$formatDate(day.date, { weekday: 'long' });
+        } else {
+          payload.day_of_week = null;
+        }
+        
+        // Only include hour if this frequency requires it
+        if (this.timeRequired && this.timeIsSet) {
+          payload.hour = `${this.selectedTime.hours}:${this.selectedTime.minutes}`;
+          logMsg += " at " + this.$formatTime(new Date(0, 0, 0, this.selectedTime.hours, this.selectedTime.minutes));
+        } else {
+          payload.hour = null;
+        }
+        
+        console.log(logMsg);
 
-        // Backup backend call here
-
+        client({
+          url: urls['kolibri:kolibri_kolibri_usb_backup_plugin_plugin:backup_schedule'](),
+          method: 'POST',
+          data: payload,
+        }).then(({ data }) => {
+          // refresh the local schedule copy (server might add timestamps)
+          this.schedule = payload;
+          // optionally merge any returned fields if server returns them
+          if (data) {
+            Object.assign(this.schedule, data);
+          }
+          this.showModal = false;
+        });
       },
       immediateBackup() {
         
@@ -439,9 +516,8 @@ function runBackup() {
 </script>
 
 <style lang="scss" scoped>
-  /* derived from .core-table-button-col */
   .button-col {
-    text-align: right;
+    text-align: center;
   }
   .loader {
     top: 3px;
