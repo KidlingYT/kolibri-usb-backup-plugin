@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.views import View
+import json
 import subprocess
 from kolibri.core.device.permissions import IsSuperuser
 from kolibri.core.tasks.registry import TaskRegistry
@@ -8,7 +9,6 @@ from rest_framework.views import APIView
 from rest_framework import status
 
 from .models import BackupSchedule
-# from .usb import find_usb_microsd
 
 
 
@@ -94,13 +94,59 @@ class RunBackupView(View):
         )
         return Response({"job_id": job_id}, status=202)
 
-# class DetectUSBView(View):
-#     """
-#     Returns a list of USB-connected MicroSD cards detected on this Pi.
-#     """
-#     def get(self, request):
-#         try:
-#             devices = find_usb_microsd()
-#         except RuntimeError as e:
-#             return JsonResponse({"error": str(e)}, status=500)
-#         return JsonResponse({"devices": devices})
+class DetectUSBView(APIView):
+    """
+    Returns a list of USB drives and SD cards detected on this Raspberry Pi.
+    Uses lsblk to find removable block devices (USB sticks, SD cards via USB reader).
+    """
+    permission_classes = (IsSuperuser,)
+
+    def get(self, request):
+        try:
+            result = subprocess.run(
+                [
+                    "lsblk",
+                    "-J",        # JSON output
+                    "-o", "NAME,SIZE,TRAN,RM,MOUNTPOINT,LABEL,MODEL",
+                    "-d",        # top-level devices only (no partitions)
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode != 0:
+                return Response(
+                    {"error": "lsblk failed: " + result.stderr.strip()},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            data = json.loads(result.stdout)
+            devices = []
+            for dev in data.get("blockdevices", []):
+                # Include devices connected via USB, or flagged as removable (rm=True/"1")
+                is_usb = dev.get("tran") == "usb"
+                is_removable = dev.get("rm") in (True, "1", 1)
+                if is_usb or is_removable:
+                    name = dev.get("name", "")
+                    label = dev.get("label") or dev.get("model") or name
+                    size = dev.get("size", "")
+                    devices.append({
+                        "path": "/dev/{}".format(name),
+                        "name": name,
+                        "label": "{} ({})".format(label, size) if size else label,
+                        "size": size,
+                        "mountpoint": dev.get("mountpoint"),
+                    })
+
+            return Response({"devices": devices})
+
+        except FileNotFoundError:
+            return Response(
+                {"error": "lsblk not found on this system"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        except subprocess.TimeoutExpired:
+            return Response(
+                {"error": "Device detection timed out"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

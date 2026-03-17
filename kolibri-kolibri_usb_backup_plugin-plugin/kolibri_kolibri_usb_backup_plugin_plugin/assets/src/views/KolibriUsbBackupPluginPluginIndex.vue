@@ -15,6 +15,25 @@
           </tr>
           <tr>
             <td colspan="3">
+              <div style="padding: 6px 0; max-width: 400px;">
+                <KSelect
+                  v-model="selectedDevice"
+                  :options="usbDeviceOptions"
+                  :label="'Backup Device'"
+                  :disabled="loadingDevices"
+                />
+                <KButton
+                  appearance="basic-link"
+                  :text="loadingDevices ? 'Scanning...' : 'Refresh Devices'"
+                  :disabled="loadingDevices"
+                  style="font-size: 13px; margin-top: 4px;"
+                  @click="fetchUSBDevices"
+                />
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="3">
               <div style="padding: 6px 0;">
                 <span>
                   <!-- <template v-if="facility.backingUp || isBackingUp">
@@ -264,11 +283,16 @@ function runBackup() {
         facilityId: null,
         tasks: null,
         showModal: false,        // schedule object fetched from backend
-        schedule: null,      };
+        schedule: null,
+        usbDevices: [],
+        selectedDevice: {},
+        loadingDevices: false,
+      };
     },
     mounted() {
       // ensure the core loading spinner is turned off when this page mounts
       this.$store.dispatch('notLoading');
+      this.fetchUSBDevices();
       client({
         url: urls['kolibri:kolibri_kolibri_usb_backup_plugin_plugin:backup_schedule'](),
         method: 'GET',
@@ -318,6 +342,18 @@ function runBackup() {
           desc += ` at ${this.$formatTime(dt)}`;
         }
         return desc;
+      },
+      usbDeviceOptions() {
+        if (this.loadingDevices) {
+          return [{ label: 'Scanning for devices...', value: null }];
+        }
+        if (this.usbDevices.length === 0) {
+          return [{ label: 'No USB devices detected', value: null }];
+        }
+        return this.usbDevices.map(device => ({
+          label: device.label,
+          value: device.path,
+        }));
       },
       selectArray() {
         return [
@@ -510,6 +546,29 @@ function runBackup() {
       editScheduled() {
         console.log('edit');
         this.showModal = true;
+      },
+      fetchUSBDevices() {
+        this.loadingDevices = true;
+        client({
+          url: urls['kolibri:kolibri_kolibri_usb_backup_plugin_plugin:detect_usb'](),
+          method: 'GET',
+        }).then(({ data }) => {
+          this.usbDevices = data.devices || [];
+          if (this.usbDevices.length > 0) {
+            this.selectedDevice = {
+              label: this.usbDevices[0].label,
+              value: this.usbDevices[0].path,
+            };
+          } else {
+            this.selectedDevice = {};
+          }
+        }).catch((err) => {
+          console.error('Failed to detect USB devices:', err);
+          this.usbDevices = [];
+          this.selectedDevice = {};
+        }).finally(() => {
+          this.loadingDevices = false;
+        });
       },
     },
   };
