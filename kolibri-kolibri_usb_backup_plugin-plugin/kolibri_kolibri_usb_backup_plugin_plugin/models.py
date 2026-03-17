@@ -6,9 +6,9 @@ class MyPluginData(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class BackupSchedule(models.Model):
-    # Number of hours between backups
+    # Number of seconds between backups
     frequency = models.IntegerField(
-        help_text="Hours before the next backup runs."
+        help_text="Seconds between scheduled backups."
     )
 
     # Time of day to run (used when frequency > 24 hours)
@@ -24,6 +24,19 @@ class BackupSchedule(models.Model):
         blank=True,
         help_text="Day of week to run backup (0-6) if frequency is greater than 168 hours."
     )
+
+    last_backup = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of the most recent successful backup."
+    )
+
+    next_backup = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of the next scheduled backup." 
+    )
+
 
 class BackupStatus(models.Model):
     last_successful_backup = models.DateTimeField(
