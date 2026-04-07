@@ -1,7 +1,12 @@
 include LICENSE
-recursive-exclude kolibri_kolibri_usb_backup_plugin_plugin/* *pyc
-recursive-include kolibri_kolibri_usb_backup_plugin_plugin/static *.*
-
-recursive-include kolibri_kolibri_usb_backup_plugin_plugin/build *.json
-recursive-exclude kolibri_kolibri_usb_backup_plugin_plugin/assets *
+include README.md
+recursive-include kolibri_kolibri_usb_backup_plugin_plugin *.py
+recursive-include kolibri_kolibri_usb_backup_plugin_plugin *.js
+recursive-include kolibri_kolibri_usb_backup_plugin_plugin *.vue
+recursive-include kolibri_kolibri_usb_backup_plugin_plugin *.json
+recursive-include kolibri_kolibri_usb_backup_plugin_plugin *.css
+recursive-include kolibri_kolibri_usb_backup_plugin_plugin *.md
+recursive-include kolibri_kolibri_usb_backup_plugin_plugin *.html
+recursive-exclude kolibri_kolibri_usb_backup_plugin_plugin *.pyc
+recursive-exclude kolibri_kolibri_usb_backup_plugin_plugin __pycache__
 
