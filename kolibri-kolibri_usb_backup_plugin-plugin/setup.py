@@ -19,4 +19,9 @@ setup(
     include_package_data=True,
     license="MIT",
     zip_safe=False,
+    entry_points={
+        "kolibri.plugins": [
+            "kolibri_kolibri_usb_backup_plugin_plugin = kolibri_kolibri_usb_backup_plugin_plugin",
+        ],
+    },
 )
