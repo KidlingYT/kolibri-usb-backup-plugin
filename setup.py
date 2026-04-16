@@ -9,7 +9,7 @@ name = "kolibri_kolibri_usb_backup_plugin_plugin"
 
 setup(
     name=name,
-    version="0.1.2",
+    version="0.1.3",
     description="Kolibri USB Backup Plugin",
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',

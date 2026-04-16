@@ -13,6 +13,9 @@ class UsbBackupPluginNavItem(NavigationHook):
 class KolibriUsbBackupPluginPlugin(KolibriPluginBase):
     translated_view_urls = "urls"
 
+    def name(self, lang):
+        return "RaspberryPiBackup"
+
 
 @register_hook
 class KolibriUsbBackupPluginPluginAsset(WebpackBundleHook):

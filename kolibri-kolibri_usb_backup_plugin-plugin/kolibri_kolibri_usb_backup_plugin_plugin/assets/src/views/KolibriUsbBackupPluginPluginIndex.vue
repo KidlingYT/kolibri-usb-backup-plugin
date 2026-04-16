@@ -250,19 +250,10 @@ function runBackup() {
       }).then(({ data }) => {
         // cache schedule for table rendering
         this.schedule = data;
-        if (data.frequency) {
-          // populate the selects exactly the way the watcher on currentTask used to
-          this.selectedItem = this.selectArray.find(i => i.value === data.frequency) || {};
-          if (data.day_of_week !== null) {
-            this.selectedDay = this.getDays.find(d => d.value === data.day_of_week) || {};
-          }
-          if (data.hour) {
-            const [h, m] = data.hour.split(':').map(Number);
-            this.selectedTime = this.BackupTime.find(t => t.hours === h && t.minutes === m) || {};
-          }
-        }
+        this.refreshModalSelection();
       }).catch(() => {
         this.schedule = null;
+        this.refreshModalSelection();
       });
     },
     computed: {
@@ -485,6 +476,25 @@ function runBackup() {
           this.selectedTime = {};
         });
       },
+      refreshModalSelection() {
+        this.userHasEdited = false;
+        if (this.schedule && this.schedule.frequency) {
+          this.selectedItem = this.selectArray.find(i => i.value === this.schedule.frequency) || {};
+          this.selectedDay = this.schedule.day_of_week !== null
+            ? this.getDays.find(d => d.value === this.schedule.day_of_week) || {}
+            : {};
+          if (this.schedule.hour) {
+            const [h, m] = this.schedule.hour.split(':').map(Number);
+            this.selectedTime = this.BackupTime.find(t => t.hours === h && t.minutes === m) || {};
+          } else {
+            this.selectedTime = {};
+          }
+        } else {
+          this.selectedItem = {};
+          this.selectedDay = {};
+          this.selectedTime = {};
+        }
+      },
       immediateBackup() {
         
         // Close any open modal and trigger the server-side run-backup endpoint.
@@ -502,6 +512,7 @@ function runBackup() {
         this.handleUserInput();
       },
       openModal() {
+        this.refreshModalSelection();
         this.showModal = true;
       },
       closeModal() {
@@ -519,6 +530,7 @@ function runBackup() {
       },
       editScheduled() {
         console.log('edit');
+        this.refreshModalSelection();
         this.showModal = true;
       },
     },
