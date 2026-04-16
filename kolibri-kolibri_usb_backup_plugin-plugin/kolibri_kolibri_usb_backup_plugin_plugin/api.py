@@ -71,6 +71,19 @@ class BackupScheduleView(APIView):
         schedule = BackupSchedule.objects.first()
         if not schedule:
             return Response({}, status=status.HTTP_204_NO_CONTENT)
+        
+        # Check if current time is past the next backup time
+        if schedule.next_backup and timezone.now() > schedule.next_backup:
+            # Simulate that a backup occurred as scheduled
+            schedule.last_backup = schedule.next_backup
+            schedule.next_backup = compute_next_backup(
+                schedule.frequency,
+                hour=schedule.hour,
+                day_of_week=schedule.day_of_week,
+                from_dt=schedule.last_backup,
+            )
+            schedule.save()
+        
         return Response({
             "frequency": schedule.frequency,
             "hour": schedule.hour.strftime("%H:%M") if schedule.hour else None,
